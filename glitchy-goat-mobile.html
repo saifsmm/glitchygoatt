@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>🐐 Glitchy Goat Grocery Grab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f0820;
+  --surface: #1c1035;
+  --card: #251445;
+  --border: rgba(255,255,255,0.08);
+  --accent: #ff5f40;
+  --gold: #ffd234;
+  --pink: #ff3d9a;
+  --green: #2ecc71;
+  --blue: #4fc3f7;
+  --purple: #b39ddb;
+  --white: #f5eeff;
+  --r: 18px;
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html, body {
+  width:100%; height:100%;
+  background:var(--bg);
+  font-family:'Nunito',sans-serif;
+  overflow:hidden;
+  touch-action:none;
+}
+#app {
+  width:100%; height:100%;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  position:relative;
+}
+.screen { width:100%; height:100%; position:absolute; top:0; left:0; display:none; flex-direction:column; }
+.screen.active { display:flex; }
+#home {
+  align-items:center; justify-content:flex-start;
+  padding-top: env(safe-area-inset-top, 20px);
+  background: radial-gradient(ellipse at 50% -10%, #3d1a6e 0%, #0f0820 60%);
+  overflow: hidden;
+}
+#home-canvas { width:100%; flex:1; min-height:0; display:block; }
+.home-bottom {
+  width:100%; padding:0 20px 30px;
+  padding-bottom: max(30px, env(safe-area-inset-bottom, 30px));
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+}
+.logo {
+  font-family:'Fredoka One',cursive;
+  font-size:clamp(2rem,8vw,3rem);
+  text-align:center;
+  line-height:1;
+  background:linear-gradient(135deg,#ffd234,#ff5f40,#ff3d9a);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  filter: drop-shadow(0 0 20px rgba(255,93,64,0.4));
+  margin-bottom:4px;
+}
+.logo-sub { font-size:clamp(0.75rem,3vw,0.9rem); color:rgba(255,255,255,0.4); letter-spacing:3px; text-transform:uppercase; margin-bottom:8px; }
+.nav-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%; max-width:380px; }
+.nav-btn {
+  font-family:'Fredoka One',cursive;
+  font-size:1.1rem;
+  padding:16px 10px;
+  border:none; border-radius:var(--r);
+  cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  transition:transform 0.1s, box-shadow 0.1s;
+  position:relative; overflow:hidden;
+}
+.nav-btn:active { transform:scale(0.95); }
+.nav-btn.primary {
+  grid-column:1/-1;
+  background:linear-gradient(135deg,#ff5f40,#ff3d9a);
+  color:white; font-size:1.4rem;
+  box-shadow:0 8px 30px rgba(255,95,64,0.5);
+  padding:20px;
+}
+.nav-btn.secondary { background:var(--card); color:var(--white); border:1px solid var(--border); }
+.nav-btn .btn-icon { font-size:1.6rem; }
+.nav-btn .btn-label { font-size:0.75rem; opacity:0.7; font-family:'Nunito',sans-serif; font-weight:700; }
+.coin-bar {
+  display:flex; align-items:center; gap:8px;
+  background:var(--card); border-radius:50px; padding:8px 16px;
+  font-family:'Fredoka One',cursive; font-size:1rem; color:var(--gold);
+  box-shadow:inset 0 0 0 1px rgba(255,210,52,0.2);
+}
+#game { background:var(--bg); position:relative; }
+#game-canvas { display:block; width:100%; height:100%; }
+#game-hud {
+  position:absolute; top:0; left:0; right:0;
+  padding:env(safe-area-inset-top,12px) 14px 0;
+  pointer-events:none; z-index:5;
+}
+.hud-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding-bottom:8px;
+}
+.hud-score {
+  font-family:'Fredoka One',cursive;
+  font-size:1.6rem; color:var(--gold);
+  text-shadow:0 0 15px rgba(255,210,52,0.5);
+}
+.hud-timer-wrap {
+  flex:1; margin:0 12px; height:10px;
+  background:rgba(255,255,255,0.1); border-radius:5px; overflow:hidden;
+}
+#hud-timer-bar { height:100%; border-radius:5px; transition:width 0.1s linear; }
+.hud-lives { display:flex; gap:3px; font-size:1.1rem; }
+.target-banner {
+  position:absolute; bottom:0; left:0; right:0;
+  padding:10px 16px max(10px, env(safe-area-inset-bottom,10px));
+  background:linear-gradient(0deg,rgba(15,8,32,0.95),transparent);
+  display:flex; align-items:center; justify-content:space-between;
+  pointer-events:none; z-index:5;
+}
+.target-pill {
+  background:rgba(255,255,255,0.08);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:50px; padding:8px 16px;
+  display:flex; align-items:center; gap:8px;
+}
+.target-label { font-size:0.65rem; color:rgba(255,255,255,0.4); text-transform:uppercase; letter-spacing:1px; }
+.target-name { font-family:'Fredoka One',cursive; font-size:1rem; color:var(--pink); }
+.combo-badge {
+  font-family:'Fredoka One',cursive; font-size:1rem;
+  background:linear-gradient(135deg,var(--accent),var(--pink));
+  padding:6px 14px; border-radius:50px; color:white;
+  min-width:70px; text-align:center;
+  transition:transform 0.15s;
+}
+#shop { padding-top: env(safe-area-inset-top, 12px); overflow: hidden; }
+.screen-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:12px 16px;
+  border-bottom:1px solid var(--border);
+}
+.screen-title { font-family:'Fredoka One',cursive; font-size:1.4rem; color:var(--white); }
+.back-btn {
+  background:var(--card); border:1px solid var(--border);
+  border-radius:50px; padding:8px 16px; color:var(--white);
+  font-family:'Fredoka One',cursive; font-size:0.9rem;
+  cursor:pointer;
+}
+.back-btn:active { transform:scale(0.95); }
+.shop-tabs {
+  display:flex; gap:6px; padding:12px 16px 0;
+  overflow-x:auto; scrollbar-width:none;
+}
+.shop-tabs::-webkit-scrollbar { display:none; }
+.shop-tab {
+  font-family:'Fredoka One',cursive; font-size:0.85rem;
+  padding:8px 16px; border-radius:50px; white-space:nowrap;
+  border:1px solid var(--border); background:var(--card);
+  color:rgba(255,255,255,0.5); cursor:pointer;
+  transition:all 0.2s;
+}
+.shop-tab.active {
+  background:linear-gradient(135deg,var(--accent),var(--pink));
+  color:white; border-color:transparent;
+  box-shadow:0 4px 15px rgba(255,95,64,0.4);
+}
+.shop-tab:active { transform:scale(0.95); }
+.shop-grid {
+  flex:1; overflow-y:auto; padding:12px 16px;
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:10px; align-content:start;
+  scrollbar-width:none;
+  padding-bottom:max(16px, env(safe-area-inset-bottom,16px));
+}
+.shop-grid::-webkit-scrollbar { display:none; }
+.skin-card {
+  background:var(--card); border-radius:var(--r);
+  border:2px solid var(--border);
+  padding:14px 10px; display:flex; flex-direction:column;
+  align-items:center; gap:8px; cursor:pointer;
+  transition:transform 0.15s, border-color 0.2s, box-shadow 0.2s;
+  position:relative; overflow:hidden;
+}
+.skin-card:active { transform:scale(0.95); }
+.skin-card.owned { border-color:rgba(46,204,113,0.4); }
+.skin-card.equipped { border-color:var(--gold); box-shadow:0 0 20px rgba(255,210,52,0.25); }
+.skin-card.equipped::after {
+  content:'ON'; position:absolute; top:8px; right:8px;
+  font-family:'Fredoka One',cursive; font-size:0.65rem;
+  background:var(--gold); color:#1a0a2e;
+  padding:2px 8px; border-radius:20px;
+}
+.skin-card.owned:not(.equipped)::after {
+  content:'✓'; position:absolute; top:8px; right:8px;
+  font-family:'Fredoka One',cursive; font-size:0.75rem;
+  background:var(--green); color:white;
+  padding:2px 8px; border-radius:20px;
+}
+.skin-preview { width:72px; height:72px; position:relative; }
+.skin-preview canvas { width:100%; height:100%; }
+.skin-name { font-family:'Fredoka One',cursive; font-size:0.85rem; color:var(--white); text-align:center; }
+.skin-price {
+  font-family:'Fredoka One',cursive; font-size:0.8rem;
+  padding:5px 12px; border-radius:50px;
+  background:linear-gradient(135deg,rgba(255,210,52,0.15),rgba(255,95,64,0.15));
+  border:1px solid rgba(255,210,52,0.3); color:var(--gold);
+}
+.skin-price.free { background:rgba(46,204,113,0.15); border-color:rgba(46,204,113,0.3); color:var(--green); }
+.skin-price.owned { background:transparent; border-color:transparent; color:rgba(255,255,255,0.3); }
+#customize { padding-top: env(safe-area-inset-top, 12px); overflow:hidden; }
+.customize-preview {
+  flex-shrink:0; height:220px;
+  display:flex; align-items:center; justify-content:center;
+  position:relative;
+  background:radial-gradient(ellipse at center, #251445 0%, var(--bg) 70%);
+}
+.customize-preview canvas { width:180px; height:180px; }
+.customize-sections { flex:1; overflow-y:auto; padding:0 16px 16px; scrollbar-width:none; }
+.customize-sections::-webkit-scrollbar { display:none; }
+.cust-section { margin-bottom:20px; }
+.cust-section-title {
+  font-family:'Fredoka One',cursive; font-size:1rem;
+  color:rgba(255,255,255,0.5); margin-bottom:10px;
+  display:flex; align-items:center; gap:6px;
+}
+.cust-options {
+  display:flex; gap:8px; overflow-x:auto; scrollbar-width:none; padding-bottom:4px;
+}
+.cust-options::-webkit-scrollbar { display:none; }
+.cust-option {
+  flex-shrink:0; width:56px; height:56px; border-radius:14px;
+  border:2px solid var(--border); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:1.4rem; background:var(--card);
+  transition:transform 0.15s, border-color 0.2s;
+  position:relative;
+}
+.cust-option:active { transform:scale(0.9); }
+.cust-option.selected { border-color:var(--gold); box-shadow:0 0 12px rgba(255,210,52,0.3); }
+.cust-option.locked { opacity:0.4; }
+.cust-option.locked::after {
+  content:'🔒'; position:absolute; bottom:-2px; right:-2px;
+  font-size:0.8rem;
+}
+#gameover-overlay {
+  position:absolute; inset:0; z-index:20;
+  display:none; flex-direction:column;
+  align-items:center; justify-content:center; gap:14px;
+  background:rgba(15,8,32,0.92);
+  padding:24px;
+}
+#gameover-overlay.show { display:flex; }
+.go-title {
+  font-family:'Fredoka One',cursive;
+  font-size:clamp(2rem,10vw,3rem);
+  text-align:center; line-height:1.1;
+  background:linear-gradient(135deg,var(--gold),var(--accent));
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+}
+.go-stats {
+  background:var(--card); border-radius:var(--r);
+  border:1px solid var(--border); padding:16px 24px;
+  width:100%; max-width:320px; display:flex; flex-direction:column; gap:8px;
+}
+.go-stat { display:flex; justify-content:space-between; align-items:center; }
+.go-stat-label { font-size:0.8rem; color:rgba(255,255,255,0.4); }
+.go-stat-val { font-family:'Fredoka One',cursive; font-size:1.1rem; color:var(--white); }
+.coins-earned { font-family:'Fredoka One',cursive; font-size:1.1rem; color:var(--gold); }
+.go-btns { display:flex; gap:10px; width:100%; max-width:320px; }
+.go-btn {
+  flex:1; font-family:'Fredoka One',cursive; font-size:1.1rem;
+  padding:16px; border:none; border-radius:var(--r); cursor:pointer;
+  transition:transform 0.1s;
+}
+.go-btn:active { transform:scale(0.95); }
+.go-btn.main { background:linear-gradient(135deg,var(--accent),var(--pink)); color:white; box-shadow:0 6px 20px rgba(255,95,64,0.4); }
+.go-btn.sec { background:var(--card); border:1px solid var(--border); color:var(--white); }
+#toast {
+  position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+  background:var(--card); border:1px solid var(--border);
+  border-radius:50px; padding:10px 20px;
+  font-family:'Fredoka One',cursive; font-size:0.95rem; color:var(--white);
+  z-index:100; pointer-events:none;
+  transition:opacity 0.3s, transform 0.3s;
+  opacity:0; transform:translateX(-50%) translateY(10px);
+  white-space:nowrap;
+}
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+#purchase-modal {
+  position:fixed; inset:0; z-index:50;
+  background:rgba(15,8,32,0.85);
+  display:none; align-items:flex-end; justify-content:center;
+}
+#purchase-modal.show { display:flex; }
+.purchase-sheet {
+  background:var(--surface); width:100%; max-width:480px;
+  border-radius:24px 24px 0 0; padding:24px 24px;
+  padding-bottom:max(24px, env(safe-area-inset-bottom,24px));
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  border:1px solid var(--border);
+  animation:slideUp 0.3s ease-out;
+}
+@keyframes slideUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+.purchase-handle { width:40px; height:4px; background:rgba(255,255,255,0.15); border-radius:2px; margin-bottom:8px; }
+.purchase-preview { font-size:3rem; }
+.purchase-name { font-family:'Fredoka One',cursive; font-size:1.4rem; color:var(--white); }
+.purchase-desc { font-size:0.85rem; color:rgba(255,255,255,0.5); text-align:center; }
+.purchase-price {
+  font-family:'Fredoka One',cursive; font-size:1.2rem; color:var(--gold);
+  background:rgba(255,210,52,0.1); border:1px solid rgba(255,210,52,0.2);
+  padding:8px 24px; border-radius:50px;
+}
+.purchase-btns { display:flex; gap:10px; width:100%; }
+.purchase-btn {
+  flex:1; font-family:'Fredoka One',cursive; font-size:1.1rem;
+  padding:16px; border:none; border-radius:var(--r); cursor:pointer;
+}
+.purchase-btn.confirm {
+  background:linear-gradient(135deg,var(--gold),var(--accent));
+  color:var(--bg); box-shadow:0 6px 20px rgba(255,210,52,0.3);
+}
+.purchase-btn.cancel { background:var(--card); border:1px solid var(--border); color:var(--white); }
+.coin-packs { display:flex; flex-direction:column; gap:8px; padding:12px 16px; }
+.coin-pack {
+  background:var(--card); border-radius:var(--r);
+  border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:14px 16px; cursor:pointer;
+  transition:transform 0.1s, border-color 0.2s;
+}
+.coin-pack:active { transform:scale(0.98); }
+.coin-pack.featured { border-color:rgba(255,210,52,0.4); background:linear-gradient(135deg,rgba(255,210,52,0.08),rgba(255,95,64,0.08)); }
+.pack-left { display:flex; align-items:center; gap:12px; }
+.pack-icon { font-size:1.8rem; }
+.pack-info { }
+.pack-name { font-family:'Fredoka One',cursive; font-size:1rem; color:var(--white); }
+.pack-bonus { font-size:0.75rem; color:var(--green); }
+.pack-price { font-family:'Fredoka One',cursive; font-size:1rem; color:var(--gold); }
+* { -webkit-overflow-scrolling:touch; }
+
+/* fix: coin packs safe area padding */
+#coin-packs-section {
+  padding-bottom:max(16px, env(safe-area-inset-bottom,16px));
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<div id="home" class="screen active">
+  <canvas id="home-canvas"></canvas>
+  <div class="home-bottom">
+    <div class="logo">🐐 Glitchy Goat<br>Grocery Grab</div>
+    <div class="logo-sub">Stretch. Grab. Repeat.</div>
+    <div class="coin-bar">🪙 <span id="coin-count">0</span> Goat Coins</div>
+    <div class="nav-grid">
+      <button class="nav-btn primary" onclick="startGame()">▶ PLAY NOW</button>
+      <button class="nav-btn secondary" onclick="showScreen('shop')">
+        <span class="btn-icon">🛍️</span>Skins Shop
+      </button>
+      <button class="nav-btn secondary" onclick="showScreen('customize')">
+        <span class="btn-icon">✂️</span>My Goat
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="game" class="screen">
+  <canvas id="game-canvas"></canvas>
+  <div id="game-hud">
+    <div class="hud-row">
+      <div class="hud-score">⭐ <span id="hud-score">0</span></div>
+      <div class="hud-timer-wrap"><div id="hud-timer-bar"></div></div>
+      <div class="hud-lives" id="hud-lives">❤️❤️❤️</div>
+    </div>
+  </div>
+  <div class="target-banner">
+    <div class="target-pill">
+      <div>
+        <div class="target-label">GRAB THIS</div>
+        <div class="target-name" id="target-name">🧀 Artisan Brie</div>
+      </div>
+    </div>
+    <div class="combo-badge" id="combo-badge" style="opacity:0">x2!</div>
+  </div>
+</div>
+
+<div id="shop" class="screen">
+  <div class="screen-header">
+    <div class="screen-title">🛍️ Goat Shop</div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="coin-bar" style="padding:6px 12px;font-size:0.85rem;">🪙 <span id="shop-coins">0</span></div>
+      <button class="back-btn" onclick="showScreen('home')">← Back</button>
+    </div>
+  </div>
+  <div class="shop-tabs" id="shop-tabs">
+    <div class="shop-tab active" data-tab="body">🐐 Bodies</div>
+    <div class="shop-tab" data-tab="neck">〰️ Necks</div>
+    <div class="shop-tab" data-tab="hat">🎩 Hats</div>
+    <div class="shop-tab" data-tab="trail">✨ Trails</div>
+    <div class="shop-tab" data-tab="coins">🪙 Get Coins</div>
+  </div>
+  <div class="shop-grid" id="shop-grid"></div>
+  <div class="coin-packs" id="coin-packs-section" style="display:none;flex:1;overflow-y:auto;"></div>
+</div>
+
+<div id="customize" class="screen">
+  <div class="screen-header">
+    <div class="screen-title">✂️ My Goat</div>
+    <button class="back-btn" onclick="showScreen('home')">← Back</button>
+  </div>
+  <div class="customize-preview">
+    <canvas id="cust-canvas" width="180" height="180"></canvas>
+  </div>
+  <div class="customize-sections" id="cust-sections"></div>
+</div>
+
+<div id="gameover-overlay">
+  <div class="go-title" id="go-title">TIME'S UP!</div>
+  <div class="go-stats">
+    <div class="go-stat"><div class="go-stat-label">Items Grabbed</div><div class="go-stat-val" id="go-score">0</div></div>
+    <div class="go-stat"><div class="go-stat-label">Best Combo</div><div class="go-stat-val" id="go-combo">0x</div></div>
+    <div class="go-stat"><div class="go-stat-label">Max Neck Stretch</div><div class="go-stat-val" id="go-neck">0px</div></div>
+    <div class="go-stat"><div class="go-stat-label">Coins Earned</div><div class="coins-earned" id="go-coins">+0 🪙</div></div>
+  </div>
+  <div class="go-btns">
+    <button class="go-btn sec" onclick="showScreen('home')">🏠 Home</button>
+    <button class="go-btn main" onclick="startGame()">▶ One More!</button>
+  </div>
+</div>
+
+<div id="purchase-modal">
+  <div class="purchase-sheet">
+    <div class="purchase-handle"></div>
+    <div class="purchase-preview" id="pm-preview">🧀</div>
+    <div class="purchase-name" id="pm-name">Artisan Goat</div>
+    <div class="purchase-desc" id="pm-desc">A sophisticated goat for a sophisticated grocery run.</div>
+    <div class="purchase-price" id="pm-price">🪙 200</div>
+    <div class="purchase-btns">
+      <button class="purchase-btn cancel" onclick="closeModal()">Cancel</button>
+      <button class="purchase-btn confirm" id="pm-confirm">Buy Now!</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+</div>
+
+<script>
+const SKINS = {
+  body: [
+    { id:'body_classic', name:'Classic Goat', emoji:'🐐', desc:'The OG. A timeless legend.', price:0, color:'#f5c842', hornColor:'#b8860b', noseColor:'#ffb3c6', preview:'🐐' },
+    { id:'body_arctic', name:'Arctic Goat', emoji:'🌨️', desc:'Straight from the frozen north.', price:150, color:'#e8f4f8', hornColor:'#90caf9', noseColor:'#b3e5fc', preview:'❄️' },
+    { id:'body_lava', name:'Lava Goat', emoji:'🌋', desc:'Too hot to handle. Literally.', price:200, color:'#ff5722', hornColor:'#bf360c', noseColor:'#ff8a65', preview:'🌋' },
+    { id:'body_galaxy', name:'Galaxy Goat', emoji:'🌌', desc:'From a galaxy far, far away.', price:350, color:'#7c4dff', hornColor:'#e040fb', noseColor:'#ce93d8', preview:'🌌' },
+    { id:'body_golden', name:'Golden Goat', emoji:'✨', desc:'Worth its weight in cheese.', price:500, color:'#ffd700', hornColor:'#ff8f00', noseColor:'#ffe082', preview:'👑' },
+    { id:'body_zombie', name:'Zombie Goat', emoji:'🧟', desc:'Braaaains... and brie.', price:250, color:'#8bc34a', hornColor:'#558b2f', noseColor:'#c5e1a5', preview:'🧟' },
+  ],
+  neck: [
+    { id:'neck_rubbery', name:'Rubbery Classic', emoji:'〰️', desc:'Satisfying elastic feel.', price:0, color:'#f5c842', preview:'〰️' },
+    { id:'neck_neon', name:'Neon Tube', emoji:'💡', desc:'Glows in the dark. Goat goals.', price:100, color:'#39ff14', preview:'💚' },
+    { id:'neck_rainbow', name:'Rainbow Stretch', emoji:'🌈', desc:'Every grab is a celebration.', price:180, color:'rainbow', preview:'🌈' },
+    { id:'neck_galaxy', name:'Cosmic Vine', emoji:'🌌', desc:'Stretches across dimensions.', price:300, color:'#7c4dff', preview:'🔮' },
+    { id:'neck_candy', name:'Candy Cane', emoji:'🍬', desc:'Sweet, sweet neck extensions.', price:120, color:'#ff6b9d', preview:'🍬' },
+  ],
+  hat: [
+    { id:'hat_none', name:'No Hat', emoji:'🚫', desc:'Au naturel. Bold choice.', price:0, preview:'🐐' },
+    { id:'hat_chef', name:'Chef Hat', emoji:'👨‍🍳', desc:'Perfectly paired with gourmet grabs.', price:80, preview:'👨‍🍳' },
+    { id:'hat_crown', name:'Gold Crown', emoji:'👑', desc:'Royalty of the grocery aisle.', price:200, preview:'👑' },
+    { id:'hat_cowboy', name:'Cowboy Hat', emoji:'🤠', desc:'Yee-haw, partner!', price:120, preview:'🤠' },
+    { id:'hat_party', name:'Party Hat', emoji:'🎉', desc:'Every grab is a party.', price:60, preview:'🎉' },
+    { id:'hat_wizard', name:'Wizard Hat', emoji:'🧙', desc:'Magically grab things.', price:160, preview:'🧙' },
+  ],
+  trail: [
+    { id:'trail_none', name:'No Trail', emoji:'🚫', desc:'Clean. Minimal. Boring.', price:0, preview:'💨' },
+    { id:'trail_stars', name:'Stardust', emoji:'⭐', desc:'Leave a trail of sparkles.', price:100, preview:'⭐' },
+    { id:'trail_fire', name:'Fire Trail', emoji:'🔥', desc:'Set the grocery store on fire. Metaphorically.', price:150, preview:'🔥' },
+    { id:'trail_hearts', name:'Love Trail', emoji:'💕', desc:'Spread love and grab cheese.', price:90, preview:'💕' },
+    { id:'trail_coins', name:'Money Trail', emoji:'🪙', desc:'Flex on other goats.', price:200, preview:'🪙' },
+  ]
+};
+
+const COIN_PACKS = [
+  { id:'coins_100', name:'Tiny Pouch', icon:'👛', amount:100, bonus:'', price:'$0.99', featured:false },
+  { id:'coins_500', name:'Goat Wallet', icon:'💰', amount:500, bonus:'+50 FREE', price:'$3.99', featured:false },
+  { id:'coins_1200', name:'Big Bag', icon:'💎', amount:1200, bonus:'+300 FREE', price:'$7.99', featured:true },
+  { id:'coins_3000', name:'Goat Vault', icon:'🏦', amount:3000, bonus:'+1000 FREE', price:'$14.99', featured:false },
+];
+
+// player state
+let player = {
+  coins: 250,
+  owned: ['body_classic','neck_rubbery','hat_none','trail_none'],
+  equipped: { body:'body_classic', neck:'neck_rubbery', hat:'hat_none', trail:'trail_none' }
+};
+
+function savePlayer() { try { localStorage.setItem('gg_player', JSON.stringify(player)); } catch(e){} }
+
+// fix: safer load with deep merge + sanitization
+function loadPlayer() {
+  try {
+    const d = localStorage.getItem('gg_player');
+    if (!d) return;
+    const parsed = JSON.parse(d) || {};
+
+    const coins = parseInt(parsed.coins, 10);
+    if (Number.isFinite(coins)) player.coins = coins;
+
+    if (Array.isArray(parsed.owned)) player.owned = parsed.owned;
+
+    const eq = parsed.equipped || {};
+    player.equipped = {
+      body: eq.body || player.equipped.body,
+      neck: eq.neck || player.equipped.neck,
+      hat: eq.hat || player.equipped.hat,
+      trail: eq.trail || player.equipped.trail,
+    };
+  } catch(e){}
+}
+loadPlayer();
+
+function getEquippedSkin(type) {
+  return SKINS[type].find(s => s.id === player.equipped[type]) || SKINS[type][0];
+}
+
+// canvas sizing helpers (fix: dpr aware + resize safe)
+function fitCanvas(canvas) {
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.round(rect.width * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+  return { w: canvas.width, h: canvas.height, dpr };
+}
+
+// screen routing
+let currentScreen = 'home';
+
+function stopGameLoop() {
+  if (gameLoopId) { cancelAnimationFrame(gameLoopId); gameLoopId = null; }
+  if (G && G.state === 'playing') G.state = 'gameover';
+}
+
+function hideOverlays() {
+  document.getElementById('gameover-overlay').classList.remove('show');
+  document.getElementById('purchase-modal').classList.remove('show');
+}
+
+// fix: when leaving game, stop loop and hide overlay so it never sticks on home
+function showScreen(id) {
+  if (currentScreen === 'game' && id !== 'game') stopGameLoop();
+  hideOverlays();
+
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  currentScreen = id;
+
+  if (id === 'shop') renderShop('body');
+  if (id === 'customize') renderCustomize();
+  if (id === 'home') { updateCoinDisplay(); runHomeAnim(); }
+}
+
+function updateCoinDisplay() {
+  document.getElementById('coin-count').textContent = player.coins;
+  document.getElementById('shop-coins').textContent = player.coins;
+}
+
+// shop
+let currentShopTab = 'body';
+
+document.getElementById('shop-tabs').addEventListener('click', e => {
+  const tab = e.target.closest('.shop-tab');
+  if (!tab) return;
+  document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  renderShop(tab.dataset.tab);
+});
+
+function renderShop(tab) {
+  currentShopTab = tab;
+  const grid = document.getElementById('shop-grid');
+  const packs = document.getElementById('coin-packs-section');
+
+  if (tab === 'coins') {
+    grid.style.display = 'none';
+    packs.style.display = 'flex';
+    packs.innerHTML = '';
+    COIN_PACKS.forEach(pack => {
+      const div = document.createElement('div');
+      div.className = 'coin-pack' + (pack.featured ? ' featured' : '');
+      div.innerHTML = `
+        <div class="pack-left">
+          <div class="pack-icon">${pack.icon}</div>
+          <div class="pack-info">
+            <div class="pack-name">🪙 ${pack.amount.toLocaleString()} Coins ${pack.bonus ? `<span style="color:var(--green);font-size:0.8rem">${pack.bonus}</span>` : ''}</div>
+            <div class="pack-bonus">${pack.featured ? '⭐ Best Value!' : 'Standard Pack'}</div>
+          </div>
+        </div>
+        <div class="pack-price">${pack.price}</div>`;
+      div.onclick = () => showToast(`💳 Payment coming soon! (Demo mode)`);
+      packs.appendChild(div);
+    });
+    return;
+  }
+
+  packs.style.display = 'none';
+  grid.style.display = 'grid';
+  grid.innerHTML = '';
+
+  const items = SKINS[tab] || [];
+  items.forEach(item => {
+    const owned = player.owned.includes(item.id);
+    const equipped = player.equipped[tab] === item.id;
+    const card = document.createElement('div');
+    card.className = 'skin-card' + (equipped ? ' equipped' : owned ? ' owned' : '');
+
+    const previewDiv = document.createElement('div');
+    previewDiv.className = 'skin-preview';
+    const pc = document.createElement('canvas');
+    pc.width = 72; pc.height = 72;
+    previewDiv.appendChild(pc);
+    card.appendChild(previewDiv);
+
+    const nameEl = document.createElement('div');
+    nameEl.className = 'skin-name';
+    nameEl.textContent = item.name;
+    card.appendChild(nameEl);
+
+    const priceEl = document.createElement('div');
+    if (equipped) { priceEl.className='skin-price owned'; priceEl.textContent='Equipped'; }
+    else if (owned) { priceEl.className='skin-price free'; priceEl.textContent='Tap to Equip'; }
+    else if (item.price === 0) { priceEl.className='skin-price free'; priceEl.textContent='FREE'; }
+    else { priceEl.className='skin-price'; priceEl.textContent=`🪙 ${item.price}`; }
+    card.appendChild(priceEl);
+
+    card.onclick = () => handleShopTap(item, tab);
+    grid.appendChild(card);
+    requestAnimationFrame(() => drawSkinPreview(pc, item, tab));
+  });
+}
+
+function drawSkinPreview(canvas, item, type) {
+  const ctx = canvas.getContext('2d');
+  const W = 72, H = 72;
+  ctx.clearRect(0,0,W,H);
+  if (type === 'body') drawMiniGoat(ctx, W/2, H/2+10, item);
+  else if (type === 'neck') drawNeckPreview(ctx, item);
+  else if (type === 'hat') drawHatPreview(ctx, item);
+  else if (type === 'trail') drawTrailPreview(ctx, item);
+}
+
+function drawMiniGoat(ctx, cx, cy, bodySkin) {
+  const c = bodySkin.color;
+  const hc = bodySkin.hornColor || '#b8860b';
+  const nc = bodySkin.noseColor || '#ffb3c6';
+  if (c === 'rainbow') {
+    const g = ctx.createLinearGradient(cx-18,cy-18,cx+18,cy+18);
+    g.addColorStop(0,'#ff6b6b'); g.addColorStop(0.33,'#ffd93d'); g.addColorStop(0.66,'#6bcb77'); g.addColorStop(1,'#4d96ff');
+    ctx.fillStyle = g;
+  } else ctx.fillStyle = c;
+  ctx.beginPath(); ctx.ellipse(cx, cy, 18, 13, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = c; ctx.beginPath(); ctx.ellipse(cx+2, cy-18, 11, 9, 0, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = hc; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(cx-4, cy-25); ctx.quadraticCurveTo(cx-9, cy-33, cx-5, cy-35); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx+8, cy-25); ctx.quadraticCurveTo(cx+13, cy-33, cx+9, cy-35); ctx.stroke();
+  ctx.fillStyle = nc; ctx.beginPath(); ctx.ellipse(cx+2, cy-14, 4, 3, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#1a0a2e'; ctx.beginPath(); ctx.arc(cx-2, cy-18, 2, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(cx+6, cy-18, 2, 0, Math.PI*2); ctx.fill();
+}
+
+function drawNeckPreview(ctx, item) {
+  const c = item.color;
+  ctx.lineWidth = 7; ctx.lineCap='round';
+  if (c === 'rainbow') {
+    const g = ctx.createLinearGradient(10, 60, 62, 10);
+    g.addColorStop(0,'#ff6b6b'); g.addColorStop(0.33,'#ffd93d'); g.addColorStop(0.66,'#6bcb77'); g.addColorStop(1,'#4d96ff');
+    ctx.strokeStyle = g;
+  } else ctx.strokeStyle = c;
+  ctx.beginPath(); ctx.moveTo(12, 62); ctx.quadraticCurveTo(36, 36, 60, 10); ctx.stroke();
+  ctx.fillStyle = '#f5c842';
+  ctx.beginPath(); ctx.arc(60,10,8,0,Math.PI*2); ctx.fill();
+}
+
+function drawHatPreview(ctx, item) {
+  if (item.id === 'hat_none') {
+    ctx.font = '36px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.globalAlpha = 0.3; ctx.fillText('🐐', 36, 40); ctx.globalAlpha=1;
+    return;
+  }
+  ctx.font = '42px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(item.preview, 36, 42);
+}
+
+function drawTrailPreview(ctx, item) {
+  if (item.id === 'trail_none') {
+    ctx.globalAlpha=0.3; ctx.font='30px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('💨',36,40); ctx.globalAlpha=1; return;
+  }
+  const emojis = { trail_stars:'⭐', trail_fire:'🔥', trail_hearts:'💕', trail_coins:'🪙' };
+  const e = emojis[item.id] || '✨';
+  const sizes = [20,28,20,16];
+  const positions = [{x:55,y:55},{x:36,y:36},{x:18,y:22},{x:8,y:10}];
+  positions.forEach((p,i) => {
+    ctx.font = sizes[i]+'px serif'; ctx.textAlign='center'; ctx.fillText(e,p.x,p.y);
+  });
+}
+
+function handleShopTap(item, type) {
+  const owned = player.owned.includes(item.id);
+  if (owned) {
+    player.equipped[type] = item.id;
+    savePlayer(); updateCoinDisplay();
+    showToast(`✅ ${item.name} equipped!`);
+    renderShop(type);
+    return;
+  }
+  if (item.price === 0) {
+    player.owned.push(item.id);
+    player.equipped[type] = item.id;
+    savePlayer(); showToast(`🎉 Got ${item.name} for free!`);
+    renderShop(type); return;
+  }
+  showPurchaseModal(item, type);
+}
+
+let pendingPurchase = null;
+function showPurchaseModal(item, type) {
+  pendingPurchase = { item, type };
+  document.getElementById('pm-preview').textContent = item.preview || item.emoji;
+  document.getElementById('pm-name').textContent = item.name;
+  document.getElementById('pm-desc').textContent = item.desc;
+  document.getElementById('pm-price').textContent = `🪙 ${item.price}`;
+  const canAfford = parseInt(player.coins, 10) >= item.price;
+  const confirmBtn = document.getElementById('pm-confirm');
+  confirmBtn.onclick = confirmPurchase;
+  confirmBtn.textContent = canAfford ? 'Buy Now!' : '❌ Not Enough Coins';
+  confirmBtn.style.opacity = canAfford ? '1' : '0.5';
+  document.getElementById('purchase-modal').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('purchase-modal').classList.remove('show');
+  pendingPurchase = null;
+}
+function confirmPurchase() {
+  if (!pendingPurchase) return;
+  const { item, type } = pendingPurchase;
+  const currentCoins = parseInt(player.coins, 10);
+  if (currentCoins < item.price) {
+    showToast('❌ Not enough coins! Play more games to earn coins.');
+    closeModal();
+    return;
+  }
+  player.coins = currentCoins - item.price;
+  player.owned.push(item.id);
+  player.equipped[type] = item.id;
+  savePlayer(); updateCoinDisplay();
+  closeModal();
+  showToast(`🎉 ${item.name} unlocked!`);
+  renderShop(type);
+}
+document.getElementById('purchase-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('purchase-modal')) closeModal();
+});
+
+// customize
+function renderCustomize() {
+  const sections = document.getElementById('cust-sections');
+  sections.innerHTML = '';
+  drawCustomizePreview();
+  const categories = [
+    { key:'body', label:'🐐 Body Color', items: SKINS.body },
+    { key:'neck', label:'〰️ Neck Style', items: SKINS.neck },
+    { key:'hat', label:'🎩 Hat', items: SKINS.hat },
+    { key:'trail', label:'✨ Grab Trail', items: SKINS.trail },
+  ];
+  categories.forEach(cat => {
+    const sec = document.createElement('div');
+    sec.className = 'cust-section';
+    sec.innerHTML = `<div class="cust-section-title">${cat.label}</div>`;
+    const opts = document.createElement('div');
+    opts.className = 'cust-options';
+    cat.items.forEach(item => {
+      const owned = player.owned.includes(item.id);
+      const selected = player.equipped[cat.key] === item.id;
+      const opt = document.createElement('div');
+      opt.className = 'cust-option' + (selected ? ' selected' : '') + (!owned ? ' locked' : '');
+      const pc = document.createElement('canvas');
+      pc.width=52; pc.height=52; opt.appendChild(pc);
+      requestAnimationFrame(()=>drawSkinPreview(pc, item, cat.key));
+      opt.onclick = () => {
+        if (!owned) { showPurchaseModal(item, cat.key); return; }
+        player.equipped[cat.key] = item.id;
+        savePlayer(); renderCustomize();
+      };
+      opts.appendChild(opt);
+    });
+    sec.appendChild(opts);
+    sections.appendChild(sec);
+  });
+}
+
+function drawCustomizePreview() {
+  const canvas = document.getElementById('cust-canvas');
+  const ctx = canvas.getContext('2d');
+  const W = 180, H = 180;
+  ctx.clearRect(0,0,W,H);
+  const bodySkin = getEquippedSkin('body');
+  const neckSkin = getEquippedSkin('neck');
+  const hatSkin = getEquippedSkin('hat');
+  const bx = 90, by = 125;
+  const nc = neckSkin.color;
+  ctx.lineWidth = 14; ctx.lineCap='round';
+  if (nc === 'rainbow') {
+    const g = ctx.createLinearGradient(bx, by-20, bx+30, 40);
+    g.addColorStop(0,'#ff6b6b'); g.addColorStop(0.33,'#ffd93d'); g.addColorStop(0.66,'#6bcb77'); g.addColorStop(1,'#4d96ff');
+    ctx.strokeStyle = g;
+  } else ctx.strokeStyle = nc;
+  ctx.beginPath(); ctx.moveTo(bx, by-20); ctx.quadraticCurveTo(bx+20, by-70, bx+25, 50); ctx.stroke();
+  const c = bodySkin.color;
+  if (c === 'rainbow') {
+    const g = ctx.createLinearGradient(bx-30, by-20, bx+30, by+20);
+    g.addColorStop(0,'#ff6b6b'); g.addColorStop(0.33,'#ffd93d'); g.addColorStop(0.66,'#6bcb77'); g.addColorStop(1,'#4d96ff');
+    ctx.fillStyle = g;
+  } else ctx.fillStyle = c;
+  ctx.beginPath(); ctx.ellipse(bx, by, 38, 27, 0, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = bodySkin.hornColor||'#b8860b'; ctx.lineWidth=2.5;
+  ['rgba(0,0,0,0.1)','rgba(255,255,255,0.2)'].forEach((f,i) => {
+    ctx.fillStyle=f; ctx.beginPath(); ctx.ellipse(bx+(i?8:-10), by-15, 6, 4, 0, 0, Math.PI*2); ctx.fill();
+  });
+  ctx.fillStyle = c === 'rainbow' ? '#ffd93d' : c;
+  ctx.beginPath(); ctx.ellipse(bx+25, 55, 22, 18, 0.2, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = bodySkin.hornColor||'#b8860b'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(bx+16, 40); ctx.quadraticCurveTo(bx+10, 24, bx+16, 20); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(bx+34, 38); ctx.quadraticCurveTo(bx+40, 22, bx+34, 18); ctx.stroke();
+  ctx.fillStyle='#1a0a2e';
+  ctx.beginPath(); ctx.arc(bx+18, 52, 4, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(bx+32, 52, 4, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle='white'; ctx.beginPath(); ctx.arc(bx+20, 50, 1.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(bx+34, 50, 1.5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = bodySkin.noseColor||'#ffb3c6';
+  ctx.beginPath(); ctx.ellipse(bx+25, 63, 8, 5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle='#1a0a2e'; ctx.beginPath(); ctx.arc(bx+22,63,2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(bx+28,63,2,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle = c === 'rainbow' ? '#ffd93d' : c; ctx.lineWidth=8;
+  [-18,-6,6,18].forEach(ox => { ctx.beginPath(); ctx.moveTo(bx+ox, by+25); ctx.lineTo(bx+ox, by+50); ctx.stroke(); });
+  if (hatSkin.id !== 'hat_none') {
+    ctx.font = '28px serif'; ctx.textAlign='center'; ctx.fillText(hatSkin.preview, bx+25, 30);
+  }
+}
+
+// toast
+let toastTimeout;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+// home animation (fix: dpr aware + resize safe)
+let homeAnimId;
+function runHomeAnim() {
+  cancelAnimationFrame(homeAnimId);
+  const canvas = document.getElementById('home-canvas');
+  const ctx = canvas.getContext('2d');
+  const bodySkin = getEquippedSkin('body');
+  const neckSkin = getEquippedSkin('neck');
+
+  function resize() {
+    fitCanvas(canvas);
+  }
+  resize();
+
+  const onResize = () => { if (currentScreen === 'home') resize(); };
+  window.addEventListener('resize', onResize);
+
+  let particles = [];
+  function spawnParticle() {
+    if (currentScreen !== 'home') return;
+    const emojis = ['🧀','🫒','🍷','🍯','🌿','🍫'];
+    particles.push({
+      x: Math.random()*canvas.width, y: canvas.height + 20,
+      emoji: emojis[Math.floor(Math.random()*emojis.length)],
+      vx: (Math.random()-0.5)*1.5, vy: -(1+Math.random()*2),
+      life: 1, size: 20+Math.random()*20
+    });
+  }
+
+  function frame(ts) {
+    if (currentScreen !== 'home') { window.removeEventListener('resize', onResize); return; }
+    homeAnimId = requestAnimationFrame(frame);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const W = canvas.width, H = canvas.height;
+    if (Math.random()<0.03) spawnParticle();
+    particles = particles.filter(p => p.life > 0 && p.y > -40);
+    for (const p of particles) {
+      p.x+=p.vx; p.y+=p.vy; p.life -= 0.004;
+      ctx.globalAlpha = Math.min(p.life*3, 1)*0.6;
+      ctx.font = p.size+'px serif'; ctx.textAlign='center';
+      ctx.fillText(p.emoji, p.x, p.y);
+    }
+    ctx.globalAlpha=1;
+    const bx = W/2 - 30, by = H*0.45;
+    const bob = Math.sin(ts/600)*12;
+    const hx = bx + 60 + Math.sin(ts/400)*35;
+    const hy = by - 55 + bob;
+    const nc = neckSkin.color;
+    ctx.lineWidth = 16; ctx.lineCap='round';
+    if (nc === 'rainbow') {
+      const g = ctx.createLinearGradient(bx, by-20, hx, hy);
+      g.addColorStop(0,'#ff6b6b'); g.addColorStop(0.33,'#ffd93d'); g.addColorStop(0.66,'#6bcb77'); g.addColorStop(1,'#4d96ff');
+      ctx.strokeStyle = g;
+    } else ctx.strokeStyle = nc;
+    ctx.beginPath(); ctx.moveTo(bx+30, by-20); ctx.quadraticCurveTo((bx+30+hx)/2, (by-20+hy)/2 - 20, hx, hy); ctx.stroke();
+    drawGameGoat(ctx, bx, by, hx, hy, bodySkin, getEquippedSkin('hat'), 1.1);
+  }
+  requestAnimationFrame(frame);
+}
+
+// game engine
+const ITEMS_DATA = [
+  { name:'🧀 Artisan Brie', emoji:'🧀', color:'#ffe082' },
+  { name:'🫒 Truffle Oil', emoji:'🫒', color:'#a5d6a7' },
+  { name:'🍷 Reserve Wine', emoji:'🍷', color:'#ce93d8' },
+  { name:'🍯 Manuka Honey', emoji:'🍯', color:'#ffcc80' },
+  { name:'🥩 Wagyu Beef', emoji:'🥩', color:'#ef9a9a' },
+  { name:'🐟 Caviar', emoji:'🐟', color:'#80deea' },
+  { name:'🌿 Fresh Basil', emoji:'🌿', color:'#a5d6a7' },
+  { name:'🍫 Dark Choc', emoji:'🍫', color:'#bcaaa4' },
+  { name:'🧃 Acai Juice', emoji:'🧃', color:'#ce93d8' },
+  { name:'🥑 Avocado', emoji:'🥑', color:'#a5d6a7' },
+];
+
+let G = {};
+let gameLoopId = null;
+
+function startGame() {
+  showScreen('game');
+  document.getElementById('gameover-overlay').classList.remove('show');
+  if (gameLoopId) cancelAnimationFrame(gameLoopId);
+
+  const canvas = document.getElementById('game-canvas');
+  const { w:W, h:H } = fitCanvas(canvas);
+
+  G = {
+    state:'playing',
+    score:0, combo:0, maxCombo:0, maxNeck:0,
+    lives:3,
+    timeLeft:30000, lastTime:performance.now(),
+    mouseX:W/2, mouseY:H/3,
+    neckExtend:false, neckLen:0, neckVel:0, neckTarget:0,
+    snapping:false, snapTimer:0,
+    headPos:{ x:W*0.18+30, y:H-120 },
+    particles:[],
+    floaters:[],
+    shelfItems:[],
+    shelfLeft: null, shelfRight: null,
+    targetItem: null,
+    endGameCalled: false,
+    bodySkin: getEquippedSkin('body'),
+    neckSkin: getEquippedSkin('neck'),
+    hatSkin: getEquippedSkin('hat'),
+    trailSkin: getEquippedSkin('trail'),
+    processingGrab: false,
+    W, H,
+  };
+
+  G.goatBody = { x: W*0.10, y: H - 110 };
+  generateGameShelf();
+  G.lastTime = performance.now();
+  gameLoopId = requestAnimationFrame(gameLoop);
+}
+
+// fix: keep game correct on rotate and resize
+function handleGameResize() {
+  if (currentScreen !== 'game' || !G || !G.W) return;
+  if (G.state !== 'playing') return;
+  const canvas = document.getElementById('game-canvas');
+  const { w, h } = fitCanvas(canvas);
+  G.W = w; G.H = h;
+  G.goatBody = { x: G.W * 0.10, y: G.H - 110 };
+  G.headPos = { x: G.W * 0.18 + 30, y: G.H - 120 };
+  generateGameShelf();
+}
+window.addEventListener('resize', handleGameResize);
+window.addEventListener('orientationchange', handleGameResize);
+
+// fix: avoid timer draining while hidden
+document.addEventListener('visibilitychange', () => {
+  if (currentScreen !== 'game') return;
+  if (document.hidden && G && G.state === 'playing') {
+    G.lastTime = performance.now();
+  }
+});
+
+function generateGameShelf() {
+  G.shelfItems = [];
+  const { W, H } = G;
+  const goatX = G.goatBody.x;
+
+  const SAFE_REACH = W * 0.48;
+  const itemLeft  = goatX + 60;
+  const itemRight = goatX + SAFE_REACH;
+
+  G.shelfLeft  = itemLeft - 40;
+  G.shelfRight = itemRight + 40;
+
+  const cols = 4, rows = 2;
+  const gapX = (itemRight - itemLeft) / (cols - 1);
+  const startY = H * 0.15, gapY = H * 0.26;
+
+  const shuffled = [...ITEMS_DATA].sort(()=>Math.random()-0.5).slice(0, cols * rows);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const item = shuffled[r * cols + c];
+      G.shelfItems.push({
+        ...item,
+        x: itemLeft + c * gapX,
+        y: startY + r * gapY,
+        grabbed: false, wobble: 0, scale: 1, pulseT: Math.random() * Math.PI * 2
+      });
+    }
+  }
+  pickGameTarget();
+}
+
+function pickGameTarget() {
+  const avail = G.shelfItems.filter(i=>!i.grabbed);
+  if (!avail.length) { generateGameShelf(); return; }
+  G.targetItem = avail[Math.floor(Math.random()*avail.length)];
+  document.getElementById('target-name').textContent = G.targetItem.name;
+}
+
+function gameLoop(ts) {
+  if (currentScreen !== 'game' || G.state !== 'playing') return;
+
+  const dt = Math.min(ts - G.lastTime, 50);
+  G.lastTime = ts;
+  const { W } = G;
+
+  G.timeLeft -= dt;
+  if (G.timeLeft <= 0) {
+    G.timeLeft = 0;
+    G.state = 'gameover';
+    drawGame(ts);
+    endGame('timeout');
+    return;
+  }
+
+  const pct = G.timeLeft/30000;
+  const bar = document.getElementById('hud-timer-bar');
+  bar.style.width = (pct*100)+'%';
+  bar.style.background = pct>0.5
+    ? 'linear-gradient(90deg,#2ecc71,#ffd234)'
+    : pct>0.25 ? 'linear-gradient(90deg,#ffd234,#ff5f40)' : 'linear-gradient(90deg,#ff3d9a,#ff5f40)';
+
+  if (G.snapping) {
+    G.snapTimer += dt; G.neckVel = -30;
+    if (G.snapTimer > 350) { G.snapping = false; G.processingGrab = false; }
+  } else if (G.neckExtend) {
+    const dx=G.mouseX-G.goatBody.x, dy=G.mouseY-G.goatBody.y;
+    G.neckTarget = Math.min(Math.sqrt(dx*dx+dy*dy), W*0.62);
+  } else G.neckTarget=0;
+
+  G.neckVel += (G.neckTarget-G.neckLen)*0.18;
+  G.neckVel *= 0.72;
+  G.neckLen += G.neckVel;
+  G.neckLen = Math.max(0, G.neckLen);
+  if (G.neckLen > G.maxNeck) G.maxNeck = G.neckLen;
+
+  if (G.neckLen>3) {
+    const dx=G.mouseX-G.goatBody.x, dy=G.mouseY-G.goatBody.y;
+    const d=Math.sqrt(dx*dx+dy*dy)||1;
+    G.headPos.x = G.goatBody.x+(dx/d)*G.neckLen;
+    G.headPos.y = G.goatBody.y+(dy/d)*G.neckLen;
+  } else {
+    G.headPos.x = G.goatBody.x+30;
+    G.headPos.y = G.goatBody.y-22;
+  }
+
+  if (G.neckLen >= W*0.61 && !G.snapping) snapGoat();
+
+  if (G.neckLen > 25 && !G.snapping && !G.processingGrab) {
+    for (const item of G.shelfItems) {
+      if (item.grabbed) continue;
+      const dx=G.headPos.x-item.x, dy=G.headPos.y-item.y;
+      if (Math.sqrt(dx*dx+dy*dy) < 34) {
+        G.processingGrab = true;
+        if (item === G.targetItem) grabItem(item);
+        else wrongGrab(item);
+        break;
+      }
+    }
+  }
+
+  for (const item of G.shelfItems) {
+    if (item.grabbed) continue;
+    const dx=G.headPos.x-item.x, dy=G.headPos.y-item.y;
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if (d<70) item.wobble=Math.sin(ts/60)*0.2*(1-d/70);
+    else item.wobble*=0.88;
+  }
+
+  G.particles = G.particles.filter(p=>p.life>0);
+  for (const p of G.particles) { p.x+=p.vx; p.y+=p.vy; p.vy+=0.35; p.life-=p.decay; }
+  G.floaters = G.floaters.filter(f=>f.life>0);
+  for (const f of G.floaters) { f.y-=1.5; f.life-=0.022; }
+
+  drawGame(ts);
+  if (G.state === 'playing') gameLoopId = requestAnimationFrame(gameLoop);
+}
+
+function grabItem(item) {
+  item.grabbed=true; item.scale=0;
+  G.score++; G.combo++;
+  if (G.combo>G.maxCombo) G.maxCombo=G.combo;
+  document.getElementById('hud-score').textContent=G.score;
+  const badge=document.getElementById('combo-badge');
+  if (G.combo>=2) {
+    badge.textContent=`x${G.combo}!`; badge.style.opacity=1;
+    badge.style.transform='scale(1.2)';
+    setTimeout(()=>badge.style.transform='scale(1)',200);
+  } else badge.style.opacity=0;
+  spawnParticles(item.x,item.y,12,item.color);
+  spawnTrail(item.x, item.y);
+  spawnFloater(item.x, item.y, G.combo>=3?`🔥 x${G.combo}!`:'+1', G.combo>=3?'#ffd234':'#2ecc71');
+  G.neckVel=-18;
+  G.processingGrab = false;
+  pickGameTarget();
+}
+
+function wrongGrab(item) {
+  spawnParticles(item.x, item.y, 22, '#ff3d9a');
+  spawnFloater(item.x, item.y, 'WRONG! 💥', '#ff3d9a');
+  G.combo = 0;
+  document.getElementById('combo-badge').style.opacity = 0;
+  snapGoat();
+  G.lives--;
+  updateLives();
+  if (G.lives <= 0) {
+    G.state = 'gameover';
+    if (gameLoopId) cancelAnimationFrame(gameLoopId);
+    setTimeout(() => endGame('lives'), 600);
+  }
+}
+
+function snapGoat() {
+  if (G.snapping) return;
+  G.snapping = true; G.snapTimer = 0;
+  spawnParticles(G.headPos.x, G.headPos.y, 18, '#ff3d9a');
+}
+
+function updateLives() {
+  document.getElementById('hud-lives').textContent =
+    [0,1,2].map(i => i < G.lives ? '❤️' : '🖤').join('');
+}
+
+function spawnParticles(x,y,n,color) {
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2, s=2+Math.random()*6;
+    G.particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-4,
+      life:1,decay:0.022+Math.random()*0.02,r:3+Math.random()*5,color});
+  }
+}
+function spawnTrail(x,y) {
+  const trailMap = { trail_none:null, trail_stars:'⭐', trail_fire:'🔥', trail_hearts:'💕', trail_coins:'🪙' };
+  const e = trailMap[G.trailSkin.id];
+  if (!e) return;
+  for(let i=0;i<5;i++) G.floaters.push({x:x+(Math.random()-0.5)*40, y:y+(Math.random()-0.5)*20, text:e, color:'white', life:1, isEmoji:true});
+}
+function spawnFloater(x,y,text,color) {
+  G.floaters.push({x,y,text,color,life:1});
+}
+
+function endGame(reason) {
+  if (G.endGameCalled) return;
+  G.endGameCalled = true;
+  G.state = 'gameover';
+  if (gameLoopId) { cancelAnimationFrame(gameLoopId); gameLoopId = null; }
+
+  const coinsEarned = G.score * 5 + G.maxCombo * 10;
+  player.coins = parseInt(player.coins, 10) + coinsEarned;
+  savePlayer(); updateCoinDisplay();
+
+  const title = reason === 'lives'
+    ? (G.score >= 10 ? '💀 Brave Goat!' : '💀 Too Wild!')
+    : (G.score >= 12 ? '🏆 GOAT LEGEND!' : G.score >= 7 ? '🔥 Nice Grab!' : '😅 Keep Stretching!');
+  document.getElementById('go-title').textContent = title;
+  document.getElementById('go-score').textContent = G.score;
+  document.getElementById('go-combo').textContent = G.maxCombo + 'x';
+  document.getElementById('go-neck').textContent = Math.round(G.maxNeck) + 'px';
+  document.getElementById('go-coins').textContent = `+${coinsEarned} 🪙`;
+  document.getElementById('gameover-overlay').classList.add('show');
+}
+
+function drawGame(ts) {
+  const canvas = document.getElementById('game-canvas');
+  const ctx = canvas.getContext('2d');
+  const { W, H, shelfItems, targetItem, goatBody, headPos, neckLen, particles, floaters, bodySkin, neckSkin, hatSkin } = G;
+
+  ctx.clearRect(0,0,W,H);
+
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#080414'); bg.addColorStop(1,'#0f0820');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  const shelfX = G.shelfLeft || G.goatBody.x;
+  const shelfW = (G.shelfRight || (G.goatBody.x + W * 0.5)) - shelfX;
+  for (let r=0;r<2;r++) {
+    const sy = H*0.09 + r*(H*0.26);
+    ctx.fillStyle='rgba(37,20,69,0.6)'; roundRect(ctx,shelfX,sy,shelfW,H*0.21,12); ctx.fill();
+    ctx.fillStyle='#4a2f8a'; ctx.fillRect(shelfX, sy+H*0.19, shelfW, 8);
+    ctx.fillStyle='rgba(255,255,255,0.04)'; ctx.fillRect(shelfX,sy,shelfW,3);
+    ctx.fillStyle='rgba(255,255,255,0.06)';
+    ctx.font='bold 11px Nunito'; ctx.fillText('PREMIUM GOURMET', shelfX+8, sy+15);
+  }
+
+  ctx.fillStyle='#1c1035'; ctx.fillRect(0,H-130,W,130);
+  ctx.fillStyle='#2d1b5e'; ctx.fillRect(0,H-132,W,4);
+
+  const maxR = W * 0.48;
+  ctx.beginPath();
+  ctx.arc(goatBody.x, goatBody.y - 20, maxR, -Math.PI * 0.85, -Math.PI * 0.15);
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+  ctx.lineWidth = 2; ctx.setLineDash([6,10]); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='#2a1860'; roundRect(ctx,goatBody.x-30,H-110,160,60,12); ctx.fill();
+  ctx.fillStyle='#3d2470'; roundRect(ctx,goatBody.x-30,H-113,160,10,6); ctx.fill();
+  ctx.fillStyle='#150830'; roundRect(ctx,goatBody.x+90,H-128,45,28,5); ctx.fill();
+  ctx.fillStyle='#2ecc71'; ctx.fillRect(goatBody.x+97,H-122,28,3); ctx.fillRect(goatBody.x+97,H-116,20,3);
+
+  if (neckLen>5) {
+    const segs=20, pts=[];
+    for(let i=0;i<=segs;i++){
+      const t=i/segs;
+      const w=Math.sin(t*Math.PI*4+ts/150)*5*(1-t)*(neckLen/200);
+      pts.push({
+        x:goatBody.x+(headPos.x-goatBody.x)*t+w,
+        y:goatBody.y-22+(headPos.y-(goatBody.y-22))*t
+      });
+    }
+    const nw=Math.max(7,22-neckLen/40);
+    const overstretch=neckLen/(W*0.62);
+    const nc=neckSkin.color;
+    ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y);
+    if (nc==='rainbow') {
+      const g=ctx.createLinearGradient(pts[0].x,pts[0].y,pts[pts.length-1].x,pts[pts.length-1].y);
+      g.addColorStop(0,'#ff6b6b'); g.addColorStop(0.33,'#ffd93d'); g.addColorStop(0.66,'#6bcb77'); g.addColorStop(1,'#4d96ff');
+      ctx.strokeStyle=g;
+    } else {
+      ctx.strokeStyle = overstretch>0.85 ? `rgba(255,61,154,0.95)` : nc;
+    }
+    ctx.lineWidth=nw; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y);
+    ctx.strokeStyle='rgba(255,255,230,0.25)'; ctx.lineWidth=nw*0.35; ctx.stroke();
+  }
+
+  for (const item of shelfItems) {
+    if (item.grabbed) continue;
+    ctx.save();
+    ctx.translate(item.x,item.y);
+    ctx.rotate(item.wobble);
+    ctx.scale(item.scale,item.scale);
+    if (item===targetItem) {
+      const glow=0.12+0.08*Math.sin(ts/280+item.pulseT);
+      ctx.beginPath(); ctx.arc(0,0,26,0,Math.PI*2);
+      ctx.fillStyle=`rgba(255,210,52,${glow})`; ctx.fill();
+      ctx.strokeStyle=`rgba(255,210,52,${0.5+0.25*Math.sin(ts/280)})`; ctx.lineWidth=2.5; ctx.stroke();
+      ctx.font='16px serif'; ctx.textAlign='center'; ctx.fillText('👆',0,-34);
+    }
+    ctx.font=`32px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(item.emoji,0,0);
+    ctx.restore();
+  }
+
+  drawGameGoat(ctx, goatBody.x, goatBody.y, headPos.x, headPos.y, bodySkin, hatSkin, 1);
+
+  for (const p of particles) {
+    const radius = Math.max(0, p.r * p.life);
+    if (radius <= 0) continue;
+    ctx.beginPath(); ctx.arc(p.x, p.y, radius, 0, Math.PI*2);
+    const alpha = Math.round(Math.max(0, Math.min(255, p.life*255))).toString(16).padStart(2,'0');
+    ctx.fillStyle = p.color + alpha; ctx.fill();
+  }
+
+  ctx.save();
+  for (const f of floaters) {
+    ctx.globalAlpha = Math.max(0, f.life);
+    if (f.isEmoji) {
+      ctx.font='20px serif'; ctx.textAlign='center'; ctx.fillText(f.text,f.x,f.y);
+    } else {
+      ctx.font="bold 700 20px 'Fredoka One',cursive";
+      ctx.fillStyle=f.color; ctx.textAlign='center';
+      ctx.shadowColor=f.color; ctx.shadowBlur=12;
+      ctx.fillText(f.text,f.x,f.y);
+    }
+  }
+  ctx.shadowBlur=0; ctx.restore();
+}
+
+function drawGameGoat(ctx, bx, by, hx, hy, bodySkin, hatSkin, scale=1) {
+  ctx.save(); ctx.scale(scale,scale);
+  const sx = bx/scale, sy = by/scale, shx=hx/scale, shy=hy/scale;
+  const c=bodySkin.color, hc=bodySkin.hornColor||'#b8860b', nc=bodySkin.noseColor||'#ffb3c6';
+
+  function getColor() {
+    if (c==='rainbow') {
+      const g=ctx.createLinearGradient(sx-35,sy-25,sx+35,sy+25);
+      g.addColorStop(0,'#ff6b6b'); g.addColorStop(0.33,'#ffd93d'); g.addColorStop(0.66,'#6bcb77'); g.addColorStop(1,'#4d96ff');
+      return g;
+    } return c;
+  }
+
+  ctx.fillStyle=getColor();
+  ctx.beginPath(); ctx.ellipse(sx,sy,35,24,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,0.08)'; ctx.beginPath(); ctx.ellipse(sx+8,sy+6,25,14,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle=c; ctx.lineWidth=7; ctx.lineCap='round';
+  [-20,-8,8,20].forEach(ox => { ctx.beginPath(); ctx.moveTo(sx+ox,sy+22); ctx.lineTo(sx+ox,sy+45); ctx.stroke(); });
+  ctx.fillStyle=hc; [-20,-8,8,20].forEach(ox => { ctx.beginPath(); ctx.ellipse(sx+ox,sy+47,5,4,0,0,Math.PI*2); ctx.fill(); });
+  ctx.strokeStyle=c; ctx.lineWidth=5;
+  ctx.beginPath(); ctx.moveTo(sx-35,sy-8); ctx.quadraticCurveTo(sx-48,sy-22,sx-38,sy-28); ctx.stroke();
+  ctx.fillStyle=getColor();
+  ctx.beginPath(); ctx.ellipse(shx,shy,18,15,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(shx-14,shy-8,6,9,-0.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(shx+14,shy-8,6,9,0.5,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle=hc; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.ellipse(shx-14,shy-8,6,9,-0.5,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(shx+14,shy-8,6,9,0.5,0,Math.PI*2); ctx.stroke();
+  ctx.strokeStyle=hc; ctx.lineWidth=3.5;
+  ctx.beginPath(); ctx.moveTo(shx-8,shy-13); ctx.quadraticCurveTo(shx-16,shy-28,shx-8,shy-32); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(shx+8,shy-13); ctx.quadraticCurveTo(shx+16,shy-28,shx+8,shy-32); ctx.stroke();
+  ctx.fillStyle='#1a0a2e';
+  ctx.beginPath(); ctx.arc(shx-6,shy-2,3.5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(shx+6,shy-2,3.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='white';
+  ctx.beginPath(); ctx.arc(shx-4.5,shy-3.5,1.4,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(shx+7.5,shy-3.5,1.4,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle=nc;
+  ctx.beginPath(); ctx.ellipse(shx,shy+6,7,5,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#1a0a2e';
+  ctx.beginPath(); ctx.arc(shx-2.5,shy+6,1.8,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(shx+2.5,shy+6,1.8,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle=c; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.moveTo(shx-3,shy+11); ctx.quadraticCurveTo(shx,shy+19,shx+3,shy+11); ctx.stroke();
+  if (hatSkin && hatSkin.id!=='hat_none') {
+    ctx.font='22px serif'; ctx.textAlign='center'; ctx.fillText(hatSkin.preview,shx,shy-32);
+  }
+  ctx.restore();
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+}
+
+// input
+function getCanvasPos(e, canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width/rect.width, scaleY = canvas.height/rect.height;
+  return { x:(e.clientX-rect.left)*scaleX, y:(e.clientY-rect.top)*scaleY };
+}
+
+document.getElementById('game-canvas').addEventListener('touchstart', e=>{
+  e.preventDefault();
+  if (currentScreen!=='game'||G.state!=='playing') return;
+  G.neckExtend=true;
+  const t=e.touches[0], rect=e.target.getBoundingClientRect();
+  G.mouseX=(t.clientX-rect.left)*(e.target.width/rect.width);
+  G.mouseY=(t.clientY-rect.top)*(e.target.height/rect.height);
+},{passive:false});
+
+document.getElementById('game-canvas').addEventListener('touchmove', e=>{
+  e.preventDefault();
+  const t=e.touches[0], rect=e.target.getBoundingClientRect();
+  G.mouseX=(t.clientX-rect.left)*(e.target.width/rect.width);
+  G.mouseY=(t.clientY-rect.top)*(e.target.height/rect.height);
+},{passive:false});
+
+document.getElementById('game-canvas').addEventListener('touchend', ()=>{ if (G) G.neckExtend=false; });
+document.getElementById('game-canvas').addEventListener('mousedown', e=>{ if (!G || G.state!=='playing') return; G.neckExtend=true; const p=getCanvasPos(e,e.target); G.mouseX=p.x; G.mouseY=p.y; });
+
+// fix: only update mouse while dragging
+document.getElementById('game-canvas').addEventListener('mousemove', e=>{
+  if (!G || !G.neckExtend) return;
+  const p=getCanvasPos(e,e.target); G.mouseX=p.x; G.mouseY=p.y;
+});
+
+document.getElementById('game-canvas').addEventListener('mouseup', ()=>{ if (G) G.neckExtend=false; });
+
+// init
+updateCoinDisplay();
+setTimeout(runHomeAnim, 100);
+</script>
+</body>
+</html>
